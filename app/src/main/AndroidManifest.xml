@@ -17,6 +17,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service android:name=".MyBackgroundService"
+            android:enabled="true"
+            android:stopWithTask="false"
+            android:exported="true"
+            android:process=":remote"
+            ></service>
+
+        <receiver android:name="OwnBroadcastReceiver" >
+            <intent-filter>
+                <action android:name="com.android.techtrainner" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

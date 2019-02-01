@@ -26,15 +26,16 @@ public class MyContentObserver extends ContentObserver {
     ArrayList<ContactVD> newDataBase = new ArrayList<>();
     ContactVD contactVD;
     ArrayList<ContactVD> lastUpdatedContact = new ArrayList<>();
-    ArrayList<ContactVD> oldDataBase;
+    ArrayList<userModel> version;
     private int mContactCount;
     String idDelete;
 
-    public MyContentObserver(Context context, int cursorCount, MainActivity.UpdateList updateList) {
+    public MyContentObserver(Context context, int cursorCount,ArrayList<userModel> versionList, MainActivity.UpdateList updateList) {
         super(null);
         myHandler = updateList;
         myContext = context;
         mContactCount = cursorCount;
+        version=versionList;
     }
 
     String id;
@@ -106,15 +107,35 @@ public class MyContentObserver extends ContentObserver {
         try {
 
             Cursor cursor = myContext.getContentResolver().query(
-                    ContactsContract.Contacts.CONTENT_URI, null, ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, null, ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP + " Desc");
+                    ContactsContract.Contacts.CONTENT_URI, null, ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, null, "(" + ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP + ")  Desc");
             if (cursor.moveToFirst()) {
                 id = cursor.getString(
-                        cursor.getColumnIndex(ContactsContract.Contacts.LOOKUP_KEY));
+                        cursor.getColumnIndex(ContactsContract.Contacts._ID));
 
                 String name = cursor.getString(
                         cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-                Log.w("Contact ID", id);
-                Log.w("Person Name", name);
+                Log.w("first Contact ID", id);
+                Log.w("first Person Name", name);
+                Cursor getContact = myContext.getContentResolver().query(
+                        ContactsContract.RawContacts.CONTENT_URI, null, ContactsContract.RawContacts.CONTACT_ID + "= " + id, null, null);
+                assert getContact != null;
+                if (getContact.getCount() > 0) {
+                    getContact.moveToNext();
+                    String NewNAme = getContact.getString(
+                            getContact.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                    String contactId = getContact.getString(
+                            getContact.getColumnIndex(ContactsContract.RawContacts.CONTACT_ID));
+                    String Versionm = getContact.getString(
+                            getContact.getColumnIndex(ContactsContract.RawContacts.VERSION));
+                    if (isTrueCall(contactId,Versionm)){
+                        Log.w("Contact ID", NewNAme);
+                        Log.w("Person Name", Versionm);
+                    }
+
+
+                }
+                getContact.close();
+
 
             }
             cursor.close();
@@ -124,7 +145,20 @@ public class MyContentObserver extends ContentObserver {
             e.printStackTrace();
         }
     }
-
+private boolean isTrueCall(String id,String versionCode){
+        boolean yes=true;
+        for (userModel userModel:version){
+            /*Log.i(TAG, "isTrueCall: id "+userModel.getUserId());
+            Log.i(TAG, "isTrueCall: version "+userModel.getVersionCpde());*/
+            if (id.equals(userModel.getUserId())){
+                if (versionCode.equals(userModel.getVersionCpde())){
+                    yes=false;
+                }
+            }
+        }
+    Log.i(TAG, "isTrueCall: "+yes);
+return yes;
+}
     private void getNewInsertedList(boolean selfChange) {
         if (!selfChange) {
             try {
@@ -149,10 +183,23 @@ public class MyContentObserver extends ContentObserver {
                                         contactNumber = contactNumber.replace(" ", "");
                                     }
                                     contactName = pCur.getString(pCur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-                                    String ids = pCur.getString(pCur.getColumnIndex(ContactsContract.Data.CONTACT_ID));
+                                    String ids = pCur.getString(pCur.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID));
                                     String msg = "Name : " + contactName + " Contact No. : " + ids;
                                     //Displaying result
                                     Log.w("Contact ID", msg);
+                                    Cursor c = myContext.getContentResolver().query(ContactsContract.RawContacts.CONTENT_URI,
+                                            null,
+                                            ContactsContract.RawContacts.CONTACT_ID+"="+ids,
+                                            null,
+                                            null);
+                                    assert c != null;
+                                    if (c.getCount()>0){
+                                        c.moveToFirst();
+                                       String myname = c.getString(c.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                                       String ighgs = c.getString(c.getColumnIndex(ContactsContract.RawContacts.VERSION));
+                                        Log.w("inside ID", myname+" "+ighgs);
+                                    }
+                                    c.close();
 
                                 }
                                 pCur.close();
